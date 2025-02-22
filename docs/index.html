@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cava Macro Calculator</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 10px; /* Reduced padding for smaller screens */
+            display: flex;
+            flex-direction: column;
+            background-color: #f4f7f4; /* Light green-gray background */
+            color: #333;
+            min-height: 100vh;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 15px; /* Reduced margin */
+        }
+        header h1 {
+            color: #2e7d32; /* Dark green for header */
+            font-size: clamp(1.5em, 5vw, 2.5em); /* Responsive font size */
+            margin: 0;
+        }
+        header p {
+            color: #555;
+            font-size: clamp(0.8em, 2.5vw, 0.9em); /* Responsive font size */
+            margin: 5px 0;
+        }
+        .content {
+            display: flex;
+            flex-direction: row;
+            flex: 1;
+        }
+        .left-panel {
+            flex: 2;
+            padding-right: 15px; /* Reduced padding */
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Two columns */
+            grid-template-rows: auto auto auto; /* Three rows */
+            gap: 15px; /* Reduced gap */
+        }
+        .category {
+            margin-bottom: 0; /* Grid handles spacing */
+        }
+        /* Specific grid placements */
+        #greens-grains { grid-column: 1 / 2; grid-row: 1 / 2; }
+        #toppings { grid-column: 2 / 3; grid-row: 1 / 2; }
+        #mains { grid-column: 1 / 2; grid-row: 2 / 3; }
+        #dips-spreads { grid-column: 2 / 3; grid-row: 2 / 3; }
+        #dressings { grid-column: 1 / 3; grid-row: 3 / 4; }
+        .category h2 {
+            color: #388e3c; /* Medium green for category headers */
+            font-size: clamp(1.2em, 3.5vw, 1.5em); /* Responsive font size */
+            margin-bottom: 8px; /* Reduced margin */
+        }
+        .item-button {
+            background-color: #ffffff;
+            border: 1px solid #81c784; /* Light green border */
+            padding: clamp(6px, 1.5vw, 8px) clamp(8px, 2vw, 12px); /* Responsive padding */
+            margin: 4px; /* Reduced margin */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            border-radius: 6px;
+            transition: background-color 0.3s;
+            color: #2e7d32; /* Dark green text */
+            font-size: clamp(0.85em, 2.5vw, 1em); /* Responsive font size */
+        }
+        .item-button:hover {
+            background-color: #e8f5e9; /* Very light green on hover */
+        }
+        .item-name {
+            flex-grow: 1;
+            margin-right: clamp(6px, 1.5vw, 8px); /* Responsive margin */
+        }
+        .count {
+            position: absolute;
+            top: -6px; /* Adjusted for smaller screens */
+            right: -6px;
+            background-color: #ff7043; /* Orange-red for contrast */
+            color: white;
+            border-radius: 50%;
+            width: clamp(16px, 4vw, 20px); /* Responsive size */
+            height: clamp(16px, 4vw, 20px);
+            text-align: center;
+            font-size: clamp(10px, 2.5vw, 12px); /* Responsive font size */
+            line-height: clamp(16px, 4vw, 20px);
+            display: none; /* Hidden until ingredient is added */
+        }
+        .quantity-controls {
+            display: flex;
+            gap: clamp(3px, 1vw, 4px); /* Responsive gap */
+        }
+        .quantity-btn {
+            background-color: #388e3c; /* Medium green */
+            color: white;
+            border: none;
+            width: clamp(16px, 4vw, 18px); /* Responsive size */
+            height: clamp(16px, 4vw, 18px);
+            border-radius: 50%;
+            font-size: clamp(10px, 2.5vw, 12px); /* Responsive font size */
+            line-height: clamp(16px, 4vw, 18px);
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .quantity-btn:hover {
+            background-color: #2e7d32; /* Darker green on hover */
+        }
+        .quantity-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .right-panel {
+            flex: 1;
+            border: 1px solid #d4e4d4; /* Light green border */
+            padding: clamp(10px, 2.5vw, 15px); /* Responsive padding */
+            background-color: #ffffff; /* White background for contrast */
+            height: fit-content;
+            position: sticky;
+            top: 10px; /* Reduced top spacing */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+            border-radius: 8px;
+        }
+        #nutrition-summary {
+            margin-top: clamp(15px, 3vw, 20px); /* Responsive margin */
+            padding-top: clamp(10px, 2.5vw, 15px); /* Responsive padding */
+            border-top: 1px solid #d4e4d4; /* Light green separator */
+        }
+        #nutrition-summary h3 {
+            color: #388e3c; /* Medium green for totals header */
+            font-size: clamp(1.1em, 3vw, 1.3em); /* Responsive font size */
+            margin-bottom: 8px; /* Reduced margin */
+        }
+        #nutrition-summary p {
+            font-size: clamp(0.85em, 2.5vw, 1em); /* Responsive font size */
+            margin: 5px 0;
+        }
+        #order-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #order-list li {
+            margin: clamp(6px, 1.5vw, 8px) 0; /* Responsive margin */
+            display: flex;
+            justify-content: space-between;
+            font-size: clamp(0.8em, 2.2vw, 0.9em); /* Responsive font size */
+            color: #555;
+        }
+        #order-list li span {
+            color: #2e7d32; /* Dark green for nutritional values */
+        }
+        .right-panel h2 {
+            color: #388e3c; /* Medium green for "Your Bowl" */
+            font-size: clamp(1.2em, 3.5vw, 1.5em); /* Responsive font size */
+            margin-bottom: clamp(10px, 2.5vw, 15px); /* Responsive margin */
+        }
+        .tooltip {
+            position: fixed; /* Fixed for better mobile positioning */
+            background: #ffffff;
+            border: 1px solid #81c784; /* Light green border */
+            padding: clamp(6px, 1.5vw, 8px); /* Responsive padding */
+            display: none;
+            z-index: 10;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            color: #2e7d32; /* Dark green text */
+            font-size: clamp(0.8em, 2.2vw, 0.9em); /* Responsive font size */
+        }
+        footer {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: clamp(15px, 3vw, 20px); /* Responsive gap */
+            padding: clamp(15px, 3vw, 20px) 0; /* Responsive padding */
+            color: #555;
+            font-size: clamp(0.7em, 2vw, 0.8em); /* Responsive font size */
+            margin-top: clamp(15px, 3vw, 20px); /* Responsive margin */
+        }
+        .coffee-button {
+            background-color: #388e3c; /* Medium green */
+            color: white;
+            border: none;
+            padding: clamp(6px, 1.5vw, 8px) clamp(12px, 2.5vw, 16px); /* Responsive padding */
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: clamp(4px, 1vw, 6px); /* Responsive gap */
+            font-size: clamp(0.85em, 2.5vw, 1em); /* Responsive font size */
+        }
+        .coffee-button:hover {
+            background-color: #2e7d32; /* Darker green on hover */
+        }
+        .coffee-icon {
+            width: clamp(14px, 3.5vw, 16px); /* Responsive size */
+            height: clamp(14px, 3.5vw, 16px);
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 8px; /* Further reduced padding */
+            }
+            .content {
+                flex-direction: column;
+            }
+            .left-panel, .right-panel {
+                flex: none;
+                width: 100%;
+                padding-right: 0;
+            }
+            .left-panel {
+                grid-template-columns: 1fr; /* Single column */
+                grid-template-rows: auto auto auto auto auto; /* Five rows */
+                gap: 10px; /* Smaller gap */
+            }
+            #greens-grains, #toppings, #mains, #dips-spreads, #dressings {
+                grid-column: 1 / 2;
+                grid-row: auto;
+            }
+            .right-panel {
+                position: static;
+                margin-top: 15px; /* Reduced margin */
+            }
+            footer {
+                flex-direction: column;
+                gap: 10px; /* Smaller gap */
+                padding: 15px 0;
+            }
+        }
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: clamp(1.2em, 4vw, 1.8em); /* Further adjustment for small screens */
+            }
+            header p {
+                font-size: clamp(0.7em, 2vw, 0.8em);
+            }
+            .category h2 {
+                font-size: clamp(1em, 3vw, 1.2em);
+            }
+            .item-button {
+                padding: 5px 8px; /* Even smaller padding */
+                font-size: clamp(0.75em, 2vw, 0.85em);
+            }
+            .quantity-btn {
+                width: 16px; /* Minimum size */
+                height: 16px;
+                font-size: 10px;
+                line-height: 16px;
+            }
+            .count {
+                width: 16px;
+                height: 16px;
+                font-size: 10px;
+                line-height: 16px;
+                top: -5px;
+                right: -5px;
+            }
+            .right-panel h2 {
+                font-size: clamp(1em, 3vw, 1.2em);
+            }
+            #nutrition-summary h3 {
+                font-size: clamp(0.9em, 2.5vw, 1.1em);
+            }
+            footer {
+                padding: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Cava Macro Calculator</h1>
+        <p>This quick calculator is aimed to generate accurate* macros based on the Nutritional Information provided by Cava USA.</p>
+        <p>* all information shared by this site is made based on calculations of the provided material. Please note that serving sizes may vary based on alternative factors.</p>
+    </header>
+
+    <div class="content">
+        <div class="left-panel">
+            <div class="category" id="greens-grains">
+                <h2>Greens + Grains</h2>
+            </div>
+
+            <div class="category" id="toppings">
+                <h2>Toppings</h2>
+            </div>
+
+            <div class="category" id="mains">
+                <h2>Mains</h2>
+            </div>
+
+            <div class="category" id="dips-spreads">
+                <h2>Dips & Spreads</h2>
+            </div>
+
+            <div class="category" id="dressings">
+                <h2>Dressings</h2>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <h2>Your Bowl</h2>
+            <div id="order-list">
+                <ul></ul>
+            </div>
+            <div id="nutrition-summary">
+                <h3>Totals</h3>
+                <p>Calories: <span id="total-calories">0</span></p>
+                <p>Carbohydrates (g): <span id="total-carbs">0</span></p>
+                <p>Total Fat (g): <span id="total-fat">0</span></p>
+                <p>Protein (g): <span id="total-protein">0</span></p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>This site is not associated with or endorsed by Cava® or any related entities.</p>
+        <button class="coffee-button" onclick="window.open('https://www.buymeacoffee.com/', '_blank')">
+            <svg class="coffee-icon" viewBox="0 0 24 24" fill="white">
+                <path d="M5 2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-1.6 1.96L18 22H6l-1.6-4.04A2 2 0 0 1 3 16V4a2 2 0 0 1 2-2zm2 14h10v2H7v-2zm11-2H6V4h12v10z"/>
+            </svg>
+            Buy Me a Coffee
+        </button>
+    </footer>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        // Nutritional data from the provided PDF
+        const nutritionData = {
+            "Greens + Grains": {
+                "Brown Rice": { calories: 310, carbohydrates_g: 68, total_fat_g: 50, protein_g: 5 },
+                "Basmati Rice": { calories: 290, carbohydrates_g: 68, total_fat_g: 7, protein_g: 5 },
+                "Black Lentils": { calories: 270, carbohydrates_g: 68, total_fat_g: 7, protein_g: 5 },
+                "SuperGreens": { calories: 40, carbohydrates_g: 68, total_fat_g: 5, protein_g: 3 },
+                "Arugula": { calories: 20, carbohydrates_g: 68, total_fat_g: 5, protein_g: 2 },
+                "Baby Spinach": { calories: 20, carbohydrates_g: 68, total_fat_g: 5, protein_g: 3 },
+                "Romaine": { calories: 20, carbohydrates_g: 68, total_fat_g: 5, protein_g: 5 },
+                "SplendidGreens": { calories: 20, carbohydrates_g: 68, total_fat_g: 5, protein_g: 1 }
+            },
+            "Mains": {
+                "Braised Lamb": { calories: 210, carbohydrates_g: 68, total_fat_g: 5, protein_g: 24 },
+                "Grilled Chicken": { calories: 250, carbohydrates_g: 68, total_fat_g: 5, protein_g: 26 },
+                "Falafel": { calories: 350, carbohydrates_g: 68, total_fat_g: 5, protein_g: 5 },
+                "Grilled Steak": { calories: 170, carbohydrates_g: 68, total_fat_g: 5, protein_g: 25 },
+                "Harissa Honey Chicken": { calories: 200, carbohydrates_g: 68, total_fat_g: 5, protein_g: 25 },
+                "Roasted Vegetables": { calories: 100, carbohydrates_g: 68, total_fat_g: 5, protein_g: 3 },
+                "Spicy Lamb Meatball": { calories: 300, carbohydrates_g: 68, total_fat_g: 5, protein_g: 24 },
+                "Chicken Shawarma": { calories: 100, carbohydrates_g: 68, total_fat_g: 5, protein_g: 16 }
+            },
+            "Toppings": {
+                "Shredded Romaine": { calories: 5, carbohydrates_g: 68, total_fat_g: 0, protein_g: 0 },
+                "Pita Crisps": { calories: 70, carbohydrates_g: 6, total_fat_g: 11, protein_g: 1 },
+                "Cabbage Slaw": { calories: 35, carbohydrates_g: 2, total_fat_g: 3, protein_g: 1 },
+                "Tomato + Onion": { calories: 20, carbohydrates_g: 2, total_fat_g: 1.5, protein_g: 1 },
+                "Persian Cucumber": { calories: 15, carbohydrates_g: 1, total_fat_g: 1, protein_g: 1 },
+                "Tomato + Cucumber": { calories: 5, carbohydrates_g: 1, total_fat_g: 0, protein_g: 1 },
+                "Kalamata Olives": { calories: 35, carbohydrates_g: 2, total_fat_g: 3, protein_g: 0 },
+                "Fiery Broccoli": { calories: 35, carbohydrates_g: 2, total_fat_g: 2.5, protein_g: 1 },
+                "Pickled Onions": { calories: 20, carbohydrates_g: 5, total_fat_g: 0, protein_g: 1 },
+                "Salt-Brined Pickles": { calories: 5, carbohydrates_g: 0, total_fat_g: 0, protein_g: 0 },
+                "Crumbled Feta": { calories: 35, carbohydrates_g: 0, total_fat_g: 2.5, protein_g: 1 },
+                "Fire-Roasted Corn": { calories: 45, carbohydrates_g: 1, total_fat_g: 2.5, protein_g: 1 },
+                "Avocado": { calories: 110, carbohydrates_g: 7, total_fat_g: 1, protein_g: 0 }
+            },
+            "Dips & Spreads": {
+                "Tzatziki": { calories: 35, carbohydrates_g: 1, total_fat_g: 2.5, protein_g: 1 },
+                "Hummus": { calories: 45, carbohydrates_g: 4, total_fat_g: 2.5, protein_g: 0 },
+                "Roasted Eggplant": { calories: 50, carbohydrates_g: 2, total_fat_g: 2.5, protein_g: 0 },
+                "Crazy Feta": { calories: 70, carbohydrates_g: 1, total_fat_g: 2.5, protein_g: 0 },
+                "Harissa": { calories: 70, carbohydrates_g: 1, total_fat_g: 2.5, protein_g: 1 },
+                "Red Pepper Hummus": { calories: 40, carbohydrates_g: 1, total_fat_g: 1, protein_g: 1 }
+            },
+            "Dressings": {
+                "Balsamic Date Vinaigrette": { calories: 60, carbohydrates_g: 1, total_fat_g: 2.5, protein_g: 1 },
+                "Yogurt Dill": { calories: 30, carbohydrates_g: 1, total_fat_g: 2.5, protein_g: 0 },
+                "Lemon-Herb Tahini": { calories: 70, carbohydrates_g: 1, total_fat_g: 2.5, protein_g: 0 },
+                "Tahini Caesar": { calories: 50, carbohydrates_g: 1, total_fat_g: 2.5, protein_g: 0 },
+                "Greek Vinaigrette": { calories: 130, carbohydrates_g: 1, total_fat_g: 2.5, protein_g: 0 },
+                "Skrug": { calories: 80, carbohydrates_g: 1, total_fat_g: 2.5, protein_g: 0 },
+                "Hot Harissa Vinaigrette": { calories: 70, carbohydrates_g: 1, total_fat_g: 2.5, protein_g: 0 },
+                "Garlic Dressing": { calories: 180, carbohydrates_g: 1, total_fat_g: 2.5, protein_g: 0 }
+            }
+        };
+
+        // Track selected items with quantities
+        let order = {};
+
+        // Function to update totals and order list
+        function updateUI() {
+            const totals = { calories: 0, carbohydrates_g: 0, total_fat_g: 0, protein_g: 0 };
+            const orderList = document.querySelector('#order-list ul');
+            orderList.innerHTML = '';
+
+            for (const [itemName, { item, count }] of Object.entries(order)) {
+                const itemTotals = {
+                    calories: item.calories * count,
+                    carbohydrates_g: item.carbohydrates_g * count,
+                    total_fat_g: item.total_fat_g * count,
+                    protein_g: item.protein_g * count
+                };
+
+                totals.calories += itemTotals.calories;
+                totals.carbohydrates_g += itemTotals.carbohydrates_g;
+                totals.total_fat_g += itemTotals.total_fat_g;
+                totals.protein_g += itemTotals.protein_g;
+
+                const li = document.createElement('li');
+                li.innerHTML = `${itemName} (x${count}) <span>${itemTotals.calories} cal, ${itemTotals.carbohydrates_g}g carbs, ${itemTotals.total_fat_g}g fat, ${itemTotals.protein_g}g protein</span>`;
+                orderList.appendChild(li);
+            }
+
+            document.getElementById('total-calories').textContent = totals.calories;
+            document.getElementById('total-carbs').textContent = totals.carbohydrates_g;
+            document.getElementById('total-fat').textContent = totals.total_fat_g;
+            document.getElementById('total-protein').textContent = totals.protein_g;
+        }
+
+        // Function to populate buttons
+        function populateCategory(categoryId, categoryName) {
+            const container = document.getElementById(categoryId);
+            const items = nutritionData[categoryName];
+            for (const itemName in items) {
+                const button = document.createElement('div');
+                button.className = 'item-button';
+                button.dataset.item = JSON.stringify(items[itemName]);
+                button.dataset.name = itemName;
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'item-name';
+                nameSpan.textContent = itemName;
+                button.appendChild(nameSpan);
+
+                const countSpan = document.createElement('span');
+                countSpan.className = 'count';
+                countSpan.textContent = '0';
+                button.appendChild(countSpan);
+
+                const controlsDiv = document.createElement('div');
+                controlsDiv.className = 'quantity-controls';
+
+                const minusBtn = document.createElement('button');
+                minusBtn.className = 'quantity-btn';
+                minusBtn.textContent = '−';
+                minusBtn.disabled = true; // Disabled by default
+                controlsDiv.appendChild(minusBtn);
+
+                const plusBtn = document.createElement('button');
+                plusBtn.className = 'quantity-btn';
+                plusBtn.textContent = '+';
+                controlsDiv.appendChild(plusBtn);
+
+                button.appendChild(controlsDiv);
+
+                // Add functionality
+                plusBtn.addEventListener('click', () => {
+                    if (!order[itemName]) {
+                        order[itemName] = { item: items[itemName], count: 0 };
+                    }
+                    order[itemName].count++;
+                    countSpan.textContent = order[itemName].count;
+                    countSpan.style.display = 'block';
+                    minusBtn.disabled = false;
+                    updateUI();
+                });
+
+                minusBtn.addEventListener('click', () => {
+                    if (order[itemName] && order[itemName].count > 0) {
+                        order[itemName].count--;
+                        countSpan.textContent = order[itemName].count;
+                        if (order[itemName].count === 0) {
+                            delete order[itemName];
+                            countSpan.style.display = 'none';
+                            minusBtn.disabled = true;
+                        }
+                        updateUI();
+                    }
+                });
+
+                // Hover for nutritional info (desktop), tap for mobile
+                button.addEventListener('mouseover', (e) => showTooltip(e, items[itemName]));
+                button.addEventListener('touchstart', (e) => {
+                    e.preventDefault(); // Prevent default touch behavior
+                    showTooltip(e, items[itemName]);
+                });
+                button.addEventListener('mouseout', hideTooltip);
+                button.addEventListener('touchend', hideTooltip);
+
+                container.appendChild(button);
+            }
+        }
+
+        function showTooltip(e, data) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.innerHTML = `
+                Calories: ${data.calories}<br>
+                Carbs: ${data.carbohydrates_g}g<br>
+                Total Fat: ${data.total_fat_g}g<br>
+                Protein: ${data.protein_g}g
+            `;
+            tooltip.style.display = 'block';
+            const touch = e.touches ? e.touches[0] : e;
+            tooltip.style.left = `${touch.pageX + 10}px`;
+            tooltip.style.top = `${touch.pageY + 10}px`;
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').style.display = 'none';
+        }
+
+        // Populate all categories
+        populateCategory('greens-grains', 'Greens + Grains');
+        populateCategory('toppings', 'Toppings');
+        populateCategory('mains', 'Mains');
+        populateCategory('dips-spreads', 'Dips & Spreads');
+        populateCategory('dressings', 'Dressings');
+    </script>
+</body>
+</html>
