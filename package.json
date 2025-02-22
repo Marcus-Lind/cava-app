@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "gh-pages": "^6.3.0"
+  },
+  "scripts": {
+  "deploy": "gh-pages -d docs",
+  "test": "echo \"Error: no test specified\" && exit 1"
+}
+
+}
